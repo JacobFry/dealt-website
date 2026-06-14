@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dealt — Can't take it? Don't deal it.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue: #1A3ACC;
+      --red: #CC1A1A;
+      --gold: #D4A000;
+      --green: #1DB87A;
+      --bg: #c8cfd8;
+      --surface: rgba(255,255,255,0.82);
+      --text-primary: #1A1A1A;
+      --text-secondary: rgba(26,26,26,0.55);
+      --text-faint: rgba(26,26,26,0.35);
+      --glass-bg: rgba(255,255,255,0.42);
+      --glass-border: rgba(255,255,255,0.78);
+      --glass-shadow: 0 8px 32px rgba(80,60,120,0.1), inset 0 1.5px 0 rgba(255,255,255,0.95);
+      --radius-card: 16px;
+      --radius-btn: 14px;
+      --radius-pill: 9999px;
+      --radius-panel: 22px;
+      --gap: 10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 16px;
+      color: var(--text-primary);
+      background: var(--bg);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── BLOB BACKGROUND ── */
+    #blob-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(70px);
+      opacity: 1;
+      will-change: transform;
+    }
+
+    /* ── LAYOUT ── */
+    .page-wrap {
+      position: relative;
+      z-index: 1;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    @media (min-width: 768px) {
+      .container { padding: 0 40px; }
+    }
+
+    /* ── GLASS ── */
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1.5px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glass::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 45%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.38) 0%, transparent 100%);
+      border-radius: inherit;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .glass > * { position: relative; z-index: 2; }
+
+    /* ── WORDMARK ── */
+    .wordmark {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      text-decoration: none;
+      display: inline-block;
+      line-height: 1;
+    }
+    .wordmark .de { color: #1A3ACC; }
+    .wordmark .a  { color: #CC1A1A; }
+    .wordmark .lt { color: #D4A000; }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.42);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1.5px solid rgba(255,255,255,0.78);
+      box-shadow: 0 2px 24px rgba(80,60,120,0.08);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      padding: 0 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 768px) { .nav-inner { padding: 0 40px; } }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text-primary); }
+
+    .nav-links .hide-mobile { display: none; }
+    @media (min-width: 640px) { .nav-links .hide-mobile { display: inline; } }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: var(--radius-btn);
+      padding: 14px 28px;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+      transition: opacity 0.18s, transform 0.18s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary {
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.52);
+      border: 1px solid rgba(255,255,255,0.8);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .btn-dark {
+      background: #1a1a1a;
+      color: #fff;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 13px 24px;
+    }
+
+    .btn-sm { padding: 10px 20px; font-size: 14px; }
+
+    /* ── EYEBROW ── */
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    /* ── SECTION TITLES ── */
+    .section-title {
+      font-size: clamp(32px, 4vw, 48px);
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.1;
+    }
+
+    /* ── SECTIONS ── */
+    section {
+      padding: 96px 0;
+    }
+
+    section:first-of-type { padding-top: 120px; }
+
+    /* ── HERO ── */
+    #hero {
+      padding-top: 100px;
+      padding-bottom: 80px;
+      text-align: center;
+    }
+
+    #hero .eyebrow { margin-bottom: 20px; }
+
+    .hero-title {
+      font-size: clamp(48px, 8vw, 88px);
+      font-weight: 700;
+      line-height: 1.0;
+      color: var(--text-primary);
+      letter-spacing: -2px;
+      margin-bottom: 24px;
+      white-space: pre-line;
+    }
+
+    .hero-sub {
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 480px;
+      margin: 0 auto 36px;
+      line-height: 1.65;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 64px;
+    }
+
+    /* ── PHONE MOCKUP ── */
+    .phone-wrap {
+      display: flex;
+      justify-content: center;
+    }
+
+    .phone {
+      width: 260px;
+      height: 520px;
+      background: #0d0d14;
+      border-radius: 44px;
+      border: 2.5px solid rgba(255,255,255,0.18);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.12);
+      padding: 18px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .phone::before {
+      content: '';
+      position: absolute;
+      top: 10px; left: 50%; transform: translateX(-50%);
+      width: 70px; height: 6px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 3px;
+    }
+
+    .phone-screen-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(160deg, #1a1a2e 0%, #0d0d14 60%);
+    }
+
+    .phone-content { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; padding-top: 12px; }
+
+    .phone-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .phone-wordmark {
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+    .phone-wordmark .de { color: #1A3ACC; }
+    .phone-wordmark .a  { color: #CC1A1A; }
+    .phone-wordmark .lt { color: #D4A000; }
+
+    .phone-avatar {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1A3ACC, #CC1A1A);
+    }
+
+    .phone-cards {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .mini-card {
+      flex: 1;
+      border-radius: 10px;
+      padding: 8px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .mini-card-1 { background: linear-gradient(160deg, #001A2C, #003A5C); border: 1px solid rgba(0,80,140,0.6); }
+    .mini-card-2 { background: linear-gradient(160deg, #2A0000, #680000); border: 1px solid rgba(120,0,0,0.6); }
+    .mini-card-3 { background: linear-gradient(160deg, #130020, #2E0055); border: 1px solid rgba(60,0,100,0.6); }
+
+    .mini-card-icon { font-size: 14px; }
+    .mini-card-name { font-size: 7px; font-weight: 700; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .mini-stat-row { display: flex; gap: 3px; }
+    .mini-stat {
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border-radius: 3px;
+      padding: 2px 3px;
+      font-size: 6px;
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+    }
+
+    .phone-label {
+      font-size: 8px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.3);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 5px;
+    }
+
+    .phone-deck-row {
+      background: rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 7px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .deck-info { display: flex; flex-direction: column; gap: 2px; }
+    .deck-name { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.85); }
+    .deck-meta { font-size: 7px; color: rgba(255,255,255,0.35); }
+
+    .deck-badge {
+      font-size: 7px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(26,58,204,0.4);
+      color: #7090ff;
+      border: 1px solid rgba(26,58,204,0.5);
+    }
+
+    .phone-cta {
+      margin-top: auto;
+      background: linear-gradient(135deg, var(--blue), #2244ee);
+      border-radius: 10px;
+      padding: 9px;
+      text-align: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── HOW IT WORKS ── */
+    #how-it-works { padding: 80px 0; }
+    #how-it-works .section-title { text-align: center; margin-bottom: 12px; }
+    #how-it-works .eyebrow { text-align: center; margin-bottom: 16px; }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--gap);
+      margin-top: 48px;
+    }
+
+    @media (min-width: 768px) {
+      .steps-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .step-card {
+      border-radius: var(--radius-card);
+      padding: 32px 28px;
+    }
+
+    .step-icon { font-size: 32px; margin-bottom: 16px; }
+    .step-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-faint);
+      margin-bottom: 8px;
+    }
+
+    .step-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+
+    .step-body {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+
+    /* ── CARD TYPES ── */
+    #card-types { padding: 80px 0; }
+    #card-types .eyebrow { text-align: center; margin-bottom: 16px; }
+    #card-types .section-title { text-align: center; margin-bottom: 48px; }
+
+    .types-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--gap);
+    }
+
+    @media (min-width: 640px) {
+      .types-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .type-card {
+      border-radius: var(--radius-card);
+      padding: 24px 20px 20px;
+      position: relative;
+      overflow: hidden;
+      min-height: 140px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .type-top-line {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .type-icon { font-size: 26px; margin-bottom: 10px; }
+    .type-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.95);
+      margin-bottom: 6px;
+    }
+
+    .type-passive {
+      font-size: 12px;
+      color: rgba(255,255,255,0.52);
+      font-weight: 500;
+    }
+
+    /* ── RARITY ── */
+    #rarity { padding: 80px 0; }
+    #rarity .eyebrow { text-align: center; margin-bottom: 16px; }
+    #rarity .section-title { text-align: center; margin-bottom: 48px; }
+
+    .rarity-scroll {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      justify-content: flex-start;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .rarity-scroll::-webkit-scrollbar { display: none; }
+
+    @media (min-width: 900px) {
+      .rarity-scroll {
+        flex-wrap: wrap;
+        justify-content: center;
+        overflow-x: visible;
+      }
+    }
+
+    .rarity-pill {
+      flex-shrink: 0;
+      border-radius: var(--radius-pill);
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      border: 1px solid rgba(255,255,255,0.18);
+      white-space: nowrap;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+    }
+
+    /* ── DOWNLOAD ── */
+    #download { padding: 80px 0; }
+
+    .download-card {
+      max-width: 600px;
+      margin: 0 auto;
+      border-radius: var(--radius-panel);
+      padding: 0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .neon-line {
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #CC1A1A, #D4A000, #1A3ACC, transparent);
+      flex-shrink: 0;
+    }
+
+    .download-inner {
+      padding: 44px 40px 44px;
+      text-align: center;
+    }
+
+    @media (max-width: 480px) {
+      .download-inner { padding: 36px 24px; }
+    }
+
+    .download-title {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+    }
+
+    .download-sub {
+      font-size: 16px;
+      color: var(--text-secondary);
+      line-height: 1.65;
+      margin-bottom: 32px;
+    }
+
+    .store-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    @media (min-width: 768px) { .footer-inner { padding: 28px 40px; } }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text-primary); }
+  </style>
+</head>
+<body>
+
+<!-- BLOB BACKGROUND -->
+<div id="blob-canvas" aria-hidden="true">
+  <div class="blob" id="b1" style="width:320px;height:320px;background:#8898c8;top:-80px;left:-80px;"></div>
+  <div class="blob" id="b2" style="width:340px;height:340px;background:#b890c4;top:-60px;right:-60px;"></div>
+  <div class="blob" id="b3" style="width:360px;height:360px;background:#c4b058;top:120px;left:-100px;"></div>
+  <div class="blob" id="b4" style="width:340px;height:340px;background:#68b898;top:100px;right:-80px;"></div>
+  <div class="blob" id="b5" style="width:320px;height:320px;background:#cc78a0;bottom:-80px;left:30px;"></div>
+  <div class="blob" id="b6" style="width:340px;height:340px;background:#78a8c0;bottom:-60px;right:-60px;"></div>
+</div>
+
+<div class="page-wrap">
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="wordmark"><span class="de">De</span><span class="a">a</span><span class="lt">lt</span></a>
+      <ul class="nav-links">
+        <li class="hide-mobile"><a href="#how-it-works">How it works</a></li>
+        <li class="hide-mobile"><a href="#card-types">Cards</a></li>
+        <li><a href="#download" class="btn btn-primary btn-sm">Download</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="container">
+      <p class="eyebrow">Now on iOS &amp; Android</p>
+      <h1 class="hero-title">Your friends,<br>ranked.</h1>
+      <p class="hero-sub">Turn your friends into cards. Build a deck. Battle anyone. The card game that's basically a roast wrapped in strategy.</p>
+      <div class="hero-buttons">
+        <a href="#download" class="btn btn-primary">Download the app</a>
+        <a href="#how-it-works" class="btn btn-secondary">How it works</a>
+      </div>
+
+      <!-- Phone Mockup -->
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="phone-screen-bg"></div>
+          <div class="phone-content">
+            <div class="phone-header">
+              <span class="phone-wordmark"><span class="de">De</span><span class="a">a</span><span class="lt">lt</span></span>
+              <div class="phone-avatar"></div>
+            </div>
+
+            <p class="phone-label">Your deck</p>
+            <div class="phone-cards">
+              <div class="mini-card mini-card-1">
+                <span class="mini-card-icon">⚡</span>
+                <span class="mini-card-name">Alex</span>
+                <div class="mini-stat-row">
+                  <div class="mini-stat">ATK 72</div>
+                  <div class="mini-stat">DEF 88</div>
+                </div>
+              </div>
+              <div class="mini-card mini-card-2">
+                <span class="mini-card-icon">💥</span>
+                <span class="mini-card-name">Jordan</span>
+                <div class="mini-stat-row">
+                  <div class="mini-stat">ATK 91</div>
+                  <div class="mini-stat">DEF 60</div>
+                </div>
+              </div>
+              <div class="mini-card mini-card-3">
+                <span class="mini-card-icon">🧠</span>
+                <span class="mini-card-name">Sam</span>
+                <div class="mini-stat-row">
+                  <div class="mini-stat">ATK 78</div>
+                  <div class="mini-stat">DEF 78</div>
+                </div>
+              </div>
+            </div>
+
+            <p class="phone-label">Saved decks</p>
+            <div class="phone-deck-row">
+              <div class="deck-info">
+                <span class="deck-name">The A-Team</span>
+                <span class="deck-meta">6 cards · Energy holo</span>
+              </div>
+              <span class="deck-badge">ACTIVE</span>
+            </div>
+            <div class="phone-deck-row">
+              <div class="deck-info">
+                <span class="deck-name">Chaos Mode</span>
+                <span class="deck-meta">6 cards · Force holo</span>
+              </div>
+              <span class="deck-badge" style="background:rgba(204,26,26,0.25);color:#ff7070;border-color:rgba(204,26,26,0.4);">DRAFT</span>
+            </div>
+
+            <div class="phone-cta">⚔️ &nbsp;Find a Battle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works">
+    <div class="container">
+      <p class="eyebrow">How it works</p>
+      <h2 class="section-title">Three steps to chaos</h2>
+      <div class="steps-grid">
+        <div class="step-card glass">
+          <div class="step-icon">🃏</div>
+          <p class="step-num">Step 01</p>
+          <h3 class="step-title">Make your friends into cards</h3>
+          <p class="step-body">Give each friend stats, a special move, and a quip. The more accurate, the more devastating.</p>
+        </div>
+        <div class="step-card glass">
+          <div class="step-icon">🗂</div>
+          <p class="step-num">Step 02</p>
+          <h3 class="step-title">Build your deck</h3>
+          <p class="step-body">Pick 6 cards, choose your holo, name your deck. Type matchups and synergies matter.</p>
+        </div>
+        <div class="step-card glass">
+          <div class="step-icon">⚔️</div>
+          <p class="step-num">Step 03</p>
+          <h3 class="step-title">Battle</h3>
+          <p class="step-body">Best of 3 rounds. Pick your attack, use gear cards, trigger holo abilities.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CARD TYPES -->
+  <section id="card-types">
+    <div class="container">
+      <p class="eyebrow">Card types</p>
+      <h2 class="section-title">Six types. Infinite matchups.</h2>
+      <div class="types-grid">
+
+        <div class="type-card" style="background:linear-gradient(160deg,#001A2C,#003A5C);">
+          <div class="type-top-line" style="background:#003A5C;"></div>
+          <span class="type-icon">⚡</span>
+          <span class="type-name">Energy</span>
+          <span class="type-passive">2× DEF regen</span>
+        </div>
+
+        <div class="type-card" style="background:linear-gradient(160deg,#181208,#3A2C18);">
+          <div class="type-top-line" style="background:#3A2C18;"></div>
+          <span class="type-icon">🪨</span>
+          <span class="type-name">Matter</span>
+          <span class="type-passive">+15 max DEF</span>
+        </div>
+
+        <div class="type-card" style="background:linear-gradient(160deg,#1A0E00,#3D2200);">
+          <div class="type-top-line" style="background:#3D2200;"></div>
+          <span class="type-icon">⏳</span>
+          <span class="type-name">Time</span>
+          <span class="type-passive">+50% move timer</span>
+        </div>
+
+        <div class="type-card" style="background:linear-gradient(160deg,#04081A,#0A0C30);">
+          <div class="type-top-line" style="background:#0A0C30;"></div>
+          <span class="type-icon">🌌</span>
+          <span class="type-name">Space</span>
+          <span class="type-passive">Free card swaps</span>
+        </div>
+
+        <div class="type-card" style="background:linear-gradient(160deg,#2A0000,#680000);">
+          <div class="type-top-line" style="background:#680000;"></div>
+          <span class="type-icon">💥</span>
+          <span class="type-name">Force</span>
+          <span class="type-passive">+20 flat ATK</span>
+        </div>
+
+        <div class="type-card" style="background:linear-gradient(160deg,#130020,#2E0055);">
+          <div class="type-top-line" style="background:#2E0055;"></div>
+          <span class="type-icon">🧠</span>
+          <span class="type-name">Consciousness</span>
+          <span class="type-passive">+5 to everything</span>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- RARITY -->
+  <section id="rarity">
+    <div class="container">
+      <p class="eyebrow">Rarity tiers</p>
+      <h2 class="section-title">From humble to legendary</h2>
+      <div class="rarity-scroll">
+        <div class="rarity-pill" style="background:linear-gradient(135deg,#5a5a6a,#8a8a9e);">Common</div>
+        <div class="rarity-pill" style="background:linear-gradient(135deg,#2d6e38,#47a85a);">Uncommon</div>
+        <div class="rarity-pill" style="background:linear-gradient(135deg,#1a42a8,#3060e0);">Rare</div>
+        <div class="rarity-pill" style="background:linear-gradient(135deg,#6a1ab8,#9c3aee);">Epic</div>
+        <div class="rarity-pill" style="background:linear-gradient(135deg,#a06000,#e08800);">Legendary</div>
+        <div class="rarity-pill" style="background:linear-gradient(135deg,#c01080,#f040b0);">Mythic</div>
+        <div class="rarity-pill" style="background:linear-gradient(135deg,#007070,#00c4c4);">Exotic</div>
+        <div class="rarity-pill" style="background:linear-gradient(135deg,#8a1a00,#ff4400);">Iconic</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD -->
+  <section id="download">
+    <div class="container">
+      <div class="download-card glass">
+        <div class="neon-line"></div>
+        <div class="download-inner">
+          <h2 class="download-title">Ready to deal?</h2>
+          <p class="download-sub">Free to download. Your friends won't know what hit them.</p>
+          <div class="store-buttons">
+            <a href="#" class="btn btn-dark">
+              🍎 App Store
+            </a>
+            <a href="#" class="btn btn-dark">
+              ▶ Google Play
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <a href="#" class="wordmark"><span class="de">De</span><span class="a">a</span><span class="lt">lt</span></a>
+      <ul class="footer-links">
+        <li><a href="#">Privacy</a></li>
+        <li><a href="#">Terms</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+  </footer>
+
+</div><!-- /page-wrap -->
+
+<script>
+  // Blob animation — requestAnimationFrame only, no setInterval
+  (function() {
+    var blobs = [
+      { el: document.getElementById('b1'), phase: 0,   xF: 0.00018, yF: 0.00013, sF: 0.00009, xA: 88, yA: 80, sA: 0.07 },
+      { el: document.getElementById('b2'), phase: 1.5, xF: 0.00015, yF: 0.00011, sF: 0.00007, xA: 92, yA: 85, sA: 0.06 },
+      { el: document.getElementById('b3'), phase: 2.7, xF: 0.00019, yF: 0.00014, sF: 0.00010, xA: 95, yA: 88, sA: 0.08 },
+      { el: document.getElementById('b4'), phase: 3.9, xF: 0.00016, yF: 0.00012, sF: 0.00008, xA: 82, yA: 75, sA: 0.07 },
+      { el: document.getElementById('b5'), phase: 5.2, xF: 0.00014, yF: 0.00010, sF: 0.00006, xA: 90, yA: 82, sA: 0.06 },
+      { el: document.getElementById('b6'), phase: 0.9, xF: 0.00017, yF: 0.00013, sF: 0.00009, xA: 85, yA: 78, sA: 0.07 }
+    ];
+
+    function tick(t) {
+      for (var i = 0; i < blobs.length; i++) {
+        var b = blobs[i];
+        var tx = Math.sin(t * b.xF + b.phase) * b.xA;
+        var ty = Math.cos(t * b.yF + b.phase * 1.3) * b.yA;
+        var sc = 0.95 + Math.sin(t * b.sF + b.phase * 0.7) * b.sA;
+        b.el.style.transform = 'translateX(' + tx + 'px) translateY(' + ty + 'px) scale(' + sc + ')';
+      }
+      requestAnimationFrame(tick);
+    }
+
+    requestAnimationFrame(tick);
+  })();
+</script>
+</body>
+</html>
